@@ -9,6 +9,8 @@ import com.ledgerline.repository.AccountRepository;
 import com.ledgerline.repository.LedgerEntryRepository;
 import com.ledgerline.repository.TransferRepository;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,15 +22,18 @@ public class TransferService {
     private final AccountRepository accountRepository;
     private final TransferRepository transferRepository;
     private final LedgerEntryRepository ledgerEntryRepository;
+    private final AuditLogService auditLogService;
 
     public TransferService(
             AccountRepository accountRepository,
             TransferRepository transferRepository,
-            LedgerEntryRepository ledgerEntryRepository) {
+            LedgerEntryRepository ledgerEntryRepository,
+            AuditLogService auditLogService) {
 
         this.accountRepository = accountRepository;
         this.transferRepository = transferRepository;
         this.ledgerEntryRepository = ledgerEntryRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional
@@ -39,12 +44,21 @@ public class TransferService {
         BigDecimal amount = request.getAmount();
         String key = request.getIdempotencyKey();
 
+        // Validate sender and receiver.
+        if (senderNumber == null || senderNumber.isBlank()
+                || receiverNumber == null || receiverNumber.isBlank()) {
+            throw new IllegalArgumentException(
+                "Sender and receiver account numbers are required"
+            );
+        }
+
         if (senderNumber.equals(receiverNumber)) {
             throw new IllegalArgumentException(
                 "Sender and receiver cannot be the same"
             );
         }
 
+        // Validate amount.
         if (amount == null || amount.signum() <= 0
                 || amount.scale() > 2) {
             throw new IllegalArgumentException(
@@ -52,6 +66,7 @@ public class TransferService {
             );
         }
 
+        // Validate idempotency key.
         if (key == null || key.isBlank()) {
             throw new IllegalArgumentException(
                 "Idempotency key is required"
@@ -63,6 +78,7 @@ public class TransferService {
         Account receiver;
 
         if (senderNumber.compareTo(receiverNumber) < 0) {
+
             sender = accountRepository
                 .findByAccountNumberForUpdate(senderNumber)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -74,7 +90,9 @@ public class TransferService {
                 .orElseThrow(() -> new IllegalArgumentException(
                     "Receiver account not found"
                 ));
+
         } else {
+
             receiver = accountRepository
                 .findByAccountNumberForUpdate(receiverNumber)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -88,11 +106,33 @@ public class TransferService {
                 ));
         }
 
-        // Check for an earlier request with the same key.
+        // Verify authenticated user.
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null ||
+                !authentication.isAuthenticated()) {
+            throw new IllegalStateException(
+                "Authentication is required"
+            );
+        }
+
+        String loggedInEmail = authentication.getName();
+
+        // Verify sender account ownership.
+        if (sender.getOwner() == null ||
+                !sender.getOwner().getEmail().equals(loggedInEmail)) {
+            throw new IllegalArgumentException(
+                "You are not authorized to transfer from this account"
+            );
+        }
+
+        // Check for an earlier request with the same idempotency key.
         var existingTransfer = transferRepository
             .findByIdempotencyKey(key);
 
         if (existingTransfer.isPresent()) {
+
             Transfer existing = existingTransfer.get();
 
             boolean sameRequest =
@@ -109,12 +149,14 @@ public class TransferService {
             return existing;
         }
 
+        // Validate currency.
         if (!sender.getCurrency().equals(receiver.getCurrency())) {
             throw new IllegalArgumentException(
                 "Sender and receiver currencies must match"
             );
         }
 
+        // Validate sufficient balance.
         if (amount.compareTo(sender.getBalance()) > 0) {
             throw new IllegalStateException(
                 "Insufficient account balance"
@@ -155,6 +197,16 @@ public class TransferService {
 
         ledgerEntryRepository.save(debit);
         ledgerEntryRepository.save(credit);
+
+        // Record successful transfer in audit log.
+        auditLogService.log(
+            loggedInEmail,
+            "MONEY_TRANSFER",
+            "Transferred " + amount + " " + sender.getCurrency()
+                    + " from account " + senderNumber
+                    + " to account " + receiverNumber,
+            "SUCCESS"
+        );
 
         return transfer;
     }

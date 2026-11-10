@@ -1,3 +1,4 @@
+
 package com.ledgerline.controller;
 
 import com.ledgerline.entity.Account;
@@ -21,12 +22,14 @@ public class AccountController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Account createAccount(@RequestBody Map<String, String> request) {
+    public Account createAccount(
+            @RequestBody Map<String, String> request) {
 
         String holderName = request.get("holderName");
 
         if (holderName == null || holderName.isBlank()) {
-            throw new IllegalArgumentException("Holder name is required");
+            throw new IllegalArgumentException(
+                    "Holder name is required");
         }
 
         return accountService.createAccount(holderName);

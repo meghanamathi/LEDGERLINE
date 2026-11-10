@@ -1,3 +1,4 @@
+
 package com.ledgerline.entity;
 
 import jakarta.persistence.*;
@@ -26,6 +27,11 @@ public class Account {
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
+
+    // Account owner
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User owner;
 
     public Account() {
     }
@@ -81,5 +87,13 @@ public class Account {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public User getOwner() {
+        return owner;
+    }
+
+    public void setOwner(User owner) {
+        this.owner = owner;
     }
 }

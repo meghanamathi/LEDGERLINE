@@ -9,6 +9,8 @@ import com.ledgerline.repository.AccountRepository;
 import com.ledgerline.repository.DepositRepository;
 import com.ledgerline.repository.LedgerEntryRepository;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,15 +22,18 @@ public class DepositService {
     private final AccountRepository accountRepository;
     private final DepositRepository depositRepository;
     private final LedgerEntryRepository ledgerEntryRepository;
+    private final AuditLogService auditLogService;
 
     public DepositService(
             AccountRepository accountRepository,
             DepositRepository depositRepository,
-            LedgerEntryRepository ledgerEntryRepository) {
+            LedgerEntryRepository ledgerEntryRepository,
+            AuditLogService auditLogService) {
 
         this.accountRepository = accountRepository;
         this.depositRepository = depositRepository;
         this.ledgerEntryRepository = ledgerEntryRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional
@@ -57,18 +62,36 @@ public class DepositService {
             );
         }
 
-        // Lock the account during the deposit.
         Account account = accountRepository
             .findByAccountNumberForUpdate(accountNumber)
             .orElseThrow(() -> new IllegalArgumentException(
                 "Account not found"
             ));
 
-        // Check whether this request was already processed.
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null ||
+                !authentication.isAuthenticated()) {
+            throw new IllegalStateException(
+                "Authentication is required"
+            );
+        }
+
+        String loggedInEmail = authentication.getName();
+
+        if (account.getOwner() == null ||
+                !account.getOwner().getEmail().equals(loggedInEmail)) {
+            throw new IllegalArgumentException(
+                "You are not authorized to deposit into this account"
+            );
+        }
+
         var existingDeposit = depositRepository
             .findByIdempotencyKey(key);
 
         if (existingDeposit.isPresent()) {
+
             Deposit existing = existingDeposit.get();
 
             boolean sameRequest =
@@ -109,6 +132,15 @@ public class DepositService {
         credit.setAmount(amount);
 
         ledgerEntryRepository.save(credit);
+
+        // Record successful deposit in audit log.
+        auditLogService.log(
+            loggedInEmail,
+            "DEPOSIT",
+            "Deposit of " + amount + " " + account.getCurrency()
+                    + " into account " + accountNumber,
+            "SUCCESS"
+        );
 
         return deposit;
     }
