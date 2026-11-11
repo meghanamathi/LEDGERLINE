@@ -69,7 +69,8 @@ public class SecurityConfig {
 
         configuration.setAllowedOrigins(List.of(
             "http://localhost:5173",
-            "http://localhost:5174"
+            "http://localhost:5174",
+            "https://ledgerline-frontend-six.vercel.app"
         ));
 
         configuration.setAllowedMethods(List.of(
