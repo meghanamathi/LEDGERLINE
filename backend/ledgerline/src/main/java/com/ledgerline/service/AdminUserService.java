@@ -80,14 +80,15 @@ public class AdminUserService {
                 : "User blocked successfully";
     }
 
-    private UserResponse convertToResponse(User user) {
-        return new UserResponse(
-                user.getId(),
-                user.getFullName(),
-                user.getEmail(),
-                user.getPhoneNumber(),
-                user.getRole(),
-                user.getCreatedAt()
-        );
-    }
+   private UserResponse convertToResponse(User user) {
+    return new UserResponse(
+            user.getId(),
+            user.getFullName(),
+            user.getEmail(),
+            user.getPhoneNumber(),
+            user.getRole(),
+            user.getCreatedAt(),
+            user.isActive()
+    );
+}
 }

@@ -1,6 +1,7 @@
 
 package com.ledgerline.controller;
 
+import com.ledgerline.dto.AccountResponse;
 import com.ledgerline.entity.Account;
 import com.ledgerline.service.AccountService;
 
@@ -22,7 +23,7 @@ public class AccountController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Account createAccount(
+    public AccountResponse createAccount(
             @RequestBody Map<String, String> request) {
 
         String holderName = request.get("holderName");
@@ -32,11 +33,28 @@ public class AccountController {
                     "Holder name is required");
         }
 
-        return accountService.createAccount(holderName);
+        Account account = accountService.createAccount(holderName);
+
+        return convertToResponse(account);
     }
 
     @GetMapping
-    public List<Account> getAllAccounts() {
-        return accountService.getAllAccounts();
+    public List<AccountResponse> getAllAccounts() {
+
+        return accountService.getAllAccounts()
+                .stream()
+                .map(this::convertToResponse)
+                .toList();
+    }
+
+    private AccountResponse convertToResponse(Account account) {
+        return new AccountResponse(
+                account.getId(),
+                account.getAccountNumber(),
+                account.getHolderName(),
+                account.getBalance(),
+                account.getCurrency(),
+                account.getCreatedAt()
+        );
     }
 }

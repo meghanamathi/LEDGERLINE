@@ -9,21 +9,31 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
 public class JwtService {
 
-    // Development secret only. Move this to an environment variable later.
-    private static final String SECRET =
-            "LedgerLineDevelopmentSecretKey2026SecureJwtSigningKey";
-
-    private final SecretKey signingKey = Keys.hmacShaKeyFor(
-            SECRET.getBytes(StandardCharsets.UTF_8)
-    );
+    private final SecretKey signingKey;
 
     private static final long EXPIRATION_TIME =
             1000L * 60 * 60; // 1 hour
+
+    public JwtService(
+            @Value("${app.jwt.secret}") String secret) {
+
+        if (secret == null ||
+                secret.getBytes(StandardCharsets.UTF_8).length < 48) {
+            throw new IllegalArgumentException(
+                    "JWT secret must be at least 48 bytes long"
+            );
+        }
+
+        this.signingKey = Keys.hmacShaKeyFor(
+                secret.getBytes(StandardCharsets.UTF_8)
+        );
+    }
 
     public String generateToken(String email, String role) {
 
