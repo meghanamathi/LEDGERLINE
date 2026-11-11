@@ -84,7 +84,7 @@ const [verificationError, setVerificationError] = useState("");
   // Fetch user's accounts
   const fetchAccounts = async () => {
     const response = await fetch(
-      "http://localhost:8080/api/accounts",
+      "https://ledgerline-backend-imey.onrender.com/api/accounts",
       {
         method: "GET",
         headers: {
@@ -103,7 +103,7 @@ const fetchTransactions = async (accountNumber) => {
 
   try {
     const response = await fetch(
-      `http://localhost:8080/api/accounts/${accountNumber}/transactions`,
+      `https://ledgerline-backend-imey.onrender.com/api/accounts/${accountNumber}/transactions`,
       {
         method: "GET",
         headers: {
@@ -131,7 +131,7 @@ const verifyTransfer = async (transferId) => {
 
   try {
     const response = await fetch(
-      `http://localhost:8080/api/ledger/verify/${transferId}`,
+      `https://ledgerline-backend-imey.onrender.com/api/ledger/verify/${transferId}`,
       {
         method: "GET",
         headers: {
@@ -158,7 +158,7 @@ const fetchAdminUsers = async () => {
 
   try {
     const response = await fetch(
-      "http://localhost:8080/api/admin/users",
+      "https://ledgerline-backend-imey.onrender.com/api/admin/users",
       {
         method: "GET",
         headers: {
@@ -183,7 +183,7 @@ const fetchAuditLogs = async () => {
 
   try {
     const response = await fetch(
-      "http://localhost:8080/api/admin/audit-logs",
+      "https://ledgerline-backend-imey.onrender.com/api/admin/audit-logs",
       {
         method: "GET",
         headers: {
@@ -215,7 +215,7 @@ const updateUserStatus = async (userId, active) => {
 
   try {
     const response = await fetch(
-      `http://localhost:8080/api/admin/users/${userId}/status?active=${active}`,
+      `https://ledgerline-backend-imey.onrender.com/api/admin/users/${userId}/status?active=${active}`,
       {
         method: "PUT",
         headers: {
@@ -269,7 +269,7 @@ const updateUserStatus = async (userId, active) => {
 
     try {
       const response = await fetch(
-        `http://localhost:8080/api/auth/${endpoint}`,
+        `https://ledgerline-backend-imey.onrender.com/api/auth/${endpoint}`,
         {
           method: "POST",
           headers: {
@@ -318,7 +318,7 @@ const updateUserStatus = async (userId, active) => {
 
     try {
       const response = await fetch(
-        "http://localhost:8080/api/accounts",
+        "https://ledgerline-backend-imey.onrender.com/api/accounts",
         {
           method: "POST",
           headers: {
@@ -366,7 +366,7 @@ const updateUserStatus = async (userId, active) => {
 
     try {
       const response = await fetch(
-        "http://localhost:8080/api/deposits",
+        "https://ledgerline-backend-imey.onrender.com/api/deposits",
         {
           method: "POST",
           headers: {
@@ -424,7 +424,7 @@ const handleTransfer = async (e) => {
 
   try {
     const response = await fetch(
-      "http://localhost:8080/api/transfers",
+      "https://ledgerline-backend-imey.onrender.com/api/transfers",
       {
         method: "POST",
         headers: {
